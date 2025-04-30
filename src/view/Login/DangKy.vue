@@ -11,7 +11,6 @@ const phoneNumber = ref('');
 const error = ref('');
 const success = ref('');
 const loading = ref(false);
-
 const router = useRouter();
 
 const handleSubmit = async () => {
@@ -48,7 +47,7 @@ const handleSubmit = async () => {
     password.value = '';
     confirmPassword.value = '';
     phoneNumber.value = '';
-    setTimeout(() => router.push('/dangnhap'), 1500); // Chuyển hướng sau 1.5s
+    setTimeout(() => router.push('/dangnhap'), 3000); // Chuyển hướng sau 1.5s
   } catch (err) {
     error.value = err.message || 'Đã xảy ra lỗi khi đăng ký';
   } finally {
@@ -66,6 +65,12 @@ const handleSubmit = async () => {
         class="bg-white bg-opacity-95 p-8 rounded-2xl shadow-xl w-full max-w-md transform transition-all duration-500 animate-fade-in">
       <img width="100%" style="padding: 20px" src="../../assets/logoEcoit.jpg" alt="EcoIT Logo" class="mb-4">
       <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Đăng Ký</h2>
+      <div v-if="error" class="bg-red-100 text-red-700 p-3 rounded mb-4">
+        {{ error }}
+      </div>
+      <div v-if="success" class="bg-green-100 text-green-700 p-3 rounded mb-4">
+        {{ success}}
+      </div>
       <form @submit.prevent="handleSubmit">
         <div class="mb-4">
           <label for="name" class="block text-sm font-medium text-gray-700">Họ và Tên</label>

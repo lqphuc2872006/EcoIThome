@@ -2,20 +2,20 @@
 import { LoginIn } from "@/view/Login/Js/DangNhap";
 import { ref } from "vue";
 import {useRouter} from "vue-router";
-
 const userName = ref('');
 const password = ref('');
 const error = ref('');
-
+const success = ref('');
 const router = useRouter();
 
 const handinLogin = async () => {
   try {
-    const { token } = await LoginIn(userName.value, password.value);
+    const { token,message } = await LoginIn(userName.value, password.value);
     localStorage.setItem('authToken', token); // Lưu token
+    success.value = message; // Gán thông báo thành công cho success
     userName.value = '';
     password.value = '';
-    router.push('/home-EcoIT');
+    setTimeout(() => router.push('/home-EcoIT'), 1000)
   } catch (err) {
     error.value = err.message || 'Đã xảy ra lỗi khi đăng nhập';
   }
@@ -31,6 +31,12 @@ const handinLogin = async () => {
     <div class="bg-white bg-opacity-95 p-8 rounded-2xl shadow-xl w-full max-w-md transform transition-all duration-500 animate-fade-in">
       <img width="100%" style="padding: 20px" src="../../assets/logoEcoit.jpg" alt="EcoIT Logo" class="mb-4">
       <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">Đăng Nhập</h2>
+      <div v-if="success" class="bg-green-100 text-green-700 p-3 rounded mb-4">
+        {{ success }}
+      </div>
+      <div v-if="error" class="bg-red-100 text-red-700 p-3 rounded mb-4">
+        {{ error }}
+      </div>
       <form @submit.prevent="handinLogin">
         <div class="mb-4">
           <label for="email" class="block text-sm font-medium text-gray-700">UserName</label>

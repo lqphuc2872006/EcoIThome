@@ -19,7 +19,7 @@ export const LoginIn = async (userName, password) => {
         const token = response.data.token || response.data.split("Token:")[1]?.trim();
         if (token) {
             localStorage.setItem("authToken", token);
-            return { success: true, token };
+            return { success: true, token, message: "Đăng nhập thành công" };
         }
         throw new Error("Không nhận được token từ server");
     } catch (error) {
