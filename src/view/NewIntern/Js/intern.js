@@ -1,4 +1,3 @@
-// src/api.js
 import axios from 'axios';
 
 export const getAllInterns = async () => {
@@ -20,3 +19,24 @@ export const addIntern = async (internData) => {
         throw error;
     }
 };
+
+export const deleteIntern = async (id) => {
+    try {
+        const response = await axios.delete(`http://localhost:8080/EcoIT/intern-delete/${id}`);
+        return response.data;
+    } catch (error) {
+        console.error('Lỗi khi xoa intern:', error);
+        throw error;
+    }
+};
+
+export const updateIntern = async (id, internData) => {
+    try {
+        const response = await axios.put(`http://localhost:8080/EcoIT/intern-update/${id}`,internData);
+        return response.data;
+    } catch (error) {
+        console.error('Lỗi khi update intern:', error);
+        throw error;
+    }
+};
+
