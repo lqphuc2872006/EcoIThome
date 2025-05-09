@@ -1,8 +1,10 @@
 import axios from 'axios';
 
-export const getAllInterns = async () => {
+export const getAllInterns = async (page = 0, size = 5) => {
     try {
-        const response = await axios.get(`http://localhost:8080/EcoIT/intern`);
+        const response = await axios.get(`http://localhost:8080/EcoIT/intern`,{
+            params: { page, size }
+        });
         return response.data;
     } catch (error) {
         console.error('Lỗi khi lấy danh sách intern:', error);

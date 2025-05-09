@@ -4,6 +4,7 @@ import DangNhap from "@/view/Login/DangNhap.vue";
 import HomeEcoIT from "@/view/Page/HomeEcoIT.vue";
 import InternNew from "@/view/NewIntern/InternNew.vue";
 import LichIntern from "@/view/LichIntern/LichIntern.vue";
+import HopIntern from "@/view/HopIntern/HopIntern.vue";
 const routes = [
     {
         path: '/',
@@ -28,6 +29,11 @@ const routes = [
         path: '/lich-lam-viec',
         name: 'lichlamviec',
         component: LichIntern
+    },
+    {
+        path: '/hop-intern',
+        name: 'hopintern',
+        component: HopIntern
     },
     {
         path: '/danh-sach-thuc-tap-sinh',

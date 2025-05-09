@@ -25,6 +25,9 @@
             <li>
               <RouterLink to="/danh-sach-thuc-tap-sinh" class="block px-6 py-3 hover:bg-gray-200">Danh Sách Thực Tập Sinh</RouterLink>
             </li>
+            <li>
+              <RouterLink to="/hop-intern" class="block px-6 py-3 hover:bg-gray-200">Họp Intern</RouterLink>
+            </li>
           </ul>
         </li>
 

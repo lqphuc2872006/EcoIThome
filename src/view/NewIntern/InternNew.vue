@@ -1,10 +1,8 @@
-<!-- src/components/InternTable.vue -->
 <script setup>
 import { ref, onMounted } from 'vue';
 import HeaderHome from '@/view/FooterHeader/HeaderHome.vue';
 import { getAllInterns, addIntern, deleteIntern, updateIntern } from '@/view/NewIntern/Js/intern';
 import FooterHome from "@/view/FooterHeader/FooterHome.vue";
-
 // Biến phản ứng
 const items = ref([]); // Lưu danh sách intern
 const loading = ref(true); // Trạng thái tải
@@ -12,12 +10,19 @@ const error = ref(null); // Lưu lỗi nếu có
 const showModel = ref(false); // Hiển thị modal
 const isEditing = ref(false); // Trạng thái chỉnh sửa
 const currentInternId = ref(null); // Lưu ID intern đang chỉnh sửa
+const currentPage = ref(0); // Trang hiện tại
+const pageSize = ref(5); // Số mục trên mỗi trang
+const totalPages = ref(0); // Tổng số trang
+const totalItems = ref(0); // Tổng số intern
 
 // Hàm gọi API
-const fetchAllData = async () => {
+const fetchAllData = async (page = 0) => {
   try {
-    const data = await getAllInterns();
-    items.value = data;
+    const data = await getAllInterns(page, pageSize.value);
+    items.value = data.interns;
+    currentPage.value = data.currentPage;
+    totalPages.value = data.totalPages;
+    totalItems.value = data.totalItems;
   } catch (err) {
     error.value = 'Không thể tải danh sách intern. Vui lòng thử lại!';
   } finally {
@@ -60,6 +65,8 @@ const handleFormSubmit = async (event) => {
       // Thêm intern mới
       const addedIntern = await addIntern(internData);
       items.value.push(addedIntern);
+      totalItems.value += 1;
+      totalPages.value = Math.ceil(totalItems.value / pageSize.value);
     }
     closeModel();
     reset();
@@ -76,6 +83,12 @@ const handleDeleteIntern = async (id) => {
     try {
       await deleteIntern(id);
       items.value = items.value.filter(intern => intern.id !== id);
+      totalItems.value -= 1;
+      totalPages.value = Math.ceil(totalItems.value / pageSize.value);
+      if (items.value.length === 0 && currentPage.value > 0) {
+        currentPage.value -= 1;
+        await fetchAllData(currentPage.value);
+      }
       error.value = null;
     } catch (err) {
       error.value = 'Không thể xóa intern. Vui lòng thử lại!';
@@ -93,7 +106,7 @@ const openEditModel = (intern) => {
     nextReviewDate: intern.nextReviewDate
   };
   isEditing.value = true;
-  currentInternId.value = intern.id; // Đảm bảo ID được gán
+  currentInternId.value = intern.id;
   showModel.value = true;
 };
 
@@ -109,7 +122,19 @@ const closeModel = () => {
   reset();
 };
 
-onMounted(fetchAllData);
+// Hàm chuyển trang
+const goToPage = async (page) => {
+  if (page >= 0 && page < totalPages.value) {
+    currentPage.value = page;
+    loading.value = true;
+    await fetchAllData(page);
+  }
+};
+
+const prevPage = () => goToPage(currentPage.value - 1);
+const nextPage = () => goToPage(currentPage.value + 1);
+
+onMounted(() => fetchAllData(currentPage.value));
 </script>
 
 <template>
@@ -118,23 +143,7 @@ onMounted(fetchAllData);
   <div class="concak mx-auto px-4 py-10">
     <div class="mb-3 flex justify-end">
       <button class="bg-green-600" @click="openModel">
-        <svg
-            aria-hidden="true"
-            stroke="currentColor"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-              stroke="#ffffff"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M5.121 17.804A9 9 0 0112 15a9 9 0 016.879 2.804M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-          />
-        </svg>
-        ADD Intern
+        <i class="fa-solid fa-plus"></i>
       </button>
     </div>
     <div v-if="loading" class="text-center">Đang tải...</div>
@@ -157,7 +166,7 @@ onMounted(fetchAllData);
           :key="intern.id"
           class="hover:bg-gray-100 transition-colors"
       >
-        <th class="py-3 px-4 border-b border-gray-200">{{ index + 1 }}</th>
+        <th class="py-3 px-4 border-b border-gray-200">{{ index + 1 + (currentPage * pageSize) }}</th>
         <td class="py-3 px-4 border-b border-gray-200">{{ intern.name }}</td>
         <td class="py-3 px-4 border-b border-gray-200">{{ intern.dateOfBirth }}</td>
         <td class="py-3 px-4 border-b border-gray-200">{{ intern.gender ? 'Nam' : 'Nữ' }}</td>
@@ -184,6 +193,31 @@ onMounted(fetchAllData);
       </tr>
       </tbody>
     </table>
+    <!-- Phân trang -->
+    <div v-if="!loading && items.length" class="pagination mt-4 flex justify-center gap-2">
+      <button
+          :disabled="currentPage === 0"
+          @click="prevPage"
+          class="bg-blue-600 text-white px-4 py-2 rounded disabled:bg-gray-400"
+      >
+        Trang trước
+      </button>
+      <button
+          v-for="page in totalPages"
+          :key="page"
+          @click="goToPage(page - 1)"
+          :class="['px-4 py-2 rounded', currentPage === page - 1 ? 'bg-green-600 text-white' : 'bg-gray-200']"
+      >
+        {{ page }}
+      </button>
+      <button
+          :disabled="currentPage === totalPages - 1"
+          @click="nextPage"
+          class="bg-blue-600 text-white px-4 py-2 rounded disabled:bg-gray-400"
+      >
+        Trang sau
+      </button>
+    </div>
   </div>
   <!-- Modal -->
   <div v-if="showModel" class="modelNew">
@@ -217,7 +251,7 @@ onMounted(fetchAllData);
             <select v-model="newIntern.gender" id="gender" class="form-control" required>
               <option value="1">Nam</option>
               <option value="0">Nữ</option>
-              <option value="2">Bue due</option>
+              <option value="2">Khác</option>
             </select>
           </div>
           <div class="form-group">
@@ -362,5 +396,9 @@ button svg {
 .button-click {
   display: flex;
   gap: 20px;
+}
+
+.pagination button {
+  margin: 0 5px;
 }
 </style>

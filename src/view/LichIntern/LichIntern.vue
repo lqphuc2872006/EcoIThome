@@ -1,6 +1,11 @@
 <template>
   <HeaderHome />
   <div class="calendar-container">
+    <div class="button-add">
+      <button @click="openModelupdate">
+        <i class="fa-solid fa-pen-to-square"></i>
+      </button>
+    </div>
     <h2>Lịch Thực Tập Sinh - Tháng {{ currentDate.toLocaleString('vi-VN', { month: 'long', year: 'numeric' }) }}</h2>
 
     <div class="month-navigation">
@@ -23,7 +28,7 @@
       </div>
     </div>
 
-    <!-- Modal -->
+    <!-- Modal hiển thị danh sách thực tập sinh -->
     <div v-if="showModal && selectedDay" class="modal-overlay">
       <div class="modal-content">
         <h3>
@@ -45,6 +50,67 @@
         <button class="modal-close" @click="closeModal">Đóng</button>
       </div>
     </div>
+
+    <!-- Modal cập nhật InternWorkSchedule -->
+    <div v-if="showModelupdate" class="modal-new">
+      <div class="modal-content">
+        <div class="form-add">
+          <h3 style="text-align: center">Cập Nhật Intern</h3>
+          <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
+          <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
+          <form @submit.prevent="submitUpdate">
+            <div class="form-group">
+              <label for="intern">Tên Intern:</label>
+              <select
+                  v-model="selectedInternId"
+                  id="intern"
+                  class="form-control"
+                  required
+                  @change="fetchInternSchedule"
+              >
+                <option value="" disabled>Chọn Intern</option>
+                <option v-for="intern in interns" :key="intern.id" :value="intern.id">
+                  {{ intern.name }}
+                </option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="startDate">Ngày bắt đầu:</label>
+              <input
+                  v-model="internData.startDate"
+                  id="startDate"
+                  type="date"
+                  class="form-control"
+                  required
+              />
+            </div>
+            <div class="form-group">
+              <label for="endDate">Ngày kết thúc:</label>
+              <input
+                  v-model="internData.endDate"
+                  id="endDate"
+                  type="date"
+                  class="form-control"
+              />
+            </div>
+            <div class="form-group">
+              <label for="hours">Số giờ/tuần:</label>
+              <input
+                  v-model="internData.availableHoursPerWeek"
+                  id="hours"
+                  type="number"
+                  class="form-control"
+                  required
+              />
+            </div>
+            <div style="display: flex;justify-content: flex-end;gap: 10px;margin-top: 20px">
+              <button type="button" class="bg-red-500" @click="closeModelupdate">Đóng</button>
+              <button type="submit" class="bg-green-600">Lưu</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -53,107 +119,179 @@ import { ref, computed, onMounted } from 'vue';
 import HeaderHome from '@/view/FooterHeader/HeaderHome.vue';
 import axios from 'axios';
 
-const currentDate = ref(new Date(2025, 4, 1)); // Mặc định tháng 5/2025
+const internData = ref({
+  startDate: '',
+  endDate: '',
+  availableHoursPerWeek: '',
+});
+
+const interns = ref([]);
+const selectedInternId = ref('');
+const scheduleId = ref(null);
+const showModelupdate = ref(false);
+const errorMessage = ref('');
+const successMessage = ref('');
+
+const openModelupdate = async () => {
+  await fetchInterns();
+  showModelupdate.value = true;
+  errorMessage.value = '';
+  successMessage.value = '';
+};
+
+const closeModelupdate = () => {
+  showModelupdate.value = false;
+  internData.value = { startDate: '', endDate: '', availableHoursPerWeek: '' };
+  selectedInternId.value = '';
+  scheduleId.value = null;
+  errorMessage.value = '';
+  successMessage.value = '';
+};
+
+const fetchInterns = async () => {
+  try {
+    const response = await axios.get('http://localhost:8080/EcoIT/interngetall');
+    interns.value = response.data;
+    console.log('Danh sách Intern:', response.data);
+  } catch (error) {
+    console.error('Lỗi khi lấy danh sách Intern:', error.message);
+    errorMessage.value = 'Không thể tải danh sách Intern. Vui lòng thử lại.';
+  }
+};
+
+const fetchInternSchedule = async () => {
+  if (!selectedInternId.value) {
+    internData.value = { startDate: '', endDate: '', availableHoursPerWeek: '' };
+    scheduleId.value = null;
+    return;
+  }
+  try {
+    const response = await axios.get(`http://localhost:8080/EcoIT/intern-work-schedules/intern/${selectedInternId.value}`);
+    if (response.data) {
+      internData.value = {
+        startDate: response.data.startDate.split('T')[0],
+        endDate: response.data.endDate ? response.data.endDate.split('T')[0] : '',
+        availableHoursPerWeek: response.data.availableHoursPerWeek,
+      };
+      scheduleId.value = response.data.id;
+    } else {
+      internData.value = { startDate: '', endDate: '', availableHoursPerWeek: '' };
+      scheduleId.value = null;
+    }
+    console.log('Lịch làm việc của Intern:', response.data);
+  } catch (error) {
+    console.error('Lỗi khi lấy lịch làm việc:', error.message);
+    internData.value = { startDate: '', endDate: '', availableHoursPerWeek: '' };
+    scheduleId.value = null;
+  }
+};
+
+const submitUpdate = async () => {
+  if (!selectedInternId.value || !scheduleId.value) {
+    errorMessage.value = 'Vui lòng chọn Intern và đảm bảo có lịch làm việc.';
+    return;
+  }
+  try {
+    const selectedIntern = interns.value.find(intern => intern.id === selectedInternId.value);
+    const response = await axios.put(`http://localhost:8080/EcoIT/intern-updateinternWk/${scheduleId.value}`, {
+      startDate: internData.value.startDate,
+      endDate: internData.value.endDate || null,
+      availableHoursPerWeek: parseInt(internData.value.availableHoursPerWeek),
+      intern: { name: selectedIntern.name },
+    });
+    console.log('Cập nhật InternWorkSchedule thành công:', response.data);
+    successMessage.value = 'Cập nhật lịch làm việc thành công!';
+    setTimeout(() => {
+      closeModelupdate();
+      fetchSchedules();
+    }, 2000);
+  } catch (error) {
+    console.error('Lỗi khi cập nhật InternWorkSchedule:', error.message);
+    errorMessage.value = 'Không thể cập nhật lịch làm việc. Vui lòng thử lại.';
+  }
+};
+
+const currentDate = ref(new Date(2025, 4, 1));
 const selectedDay = ref(null);
 const showModal = ref(false);
 const schedules = ref([]);
 const selectedDayInterns = ref([]);
 
-// Hàm định dạng ngày thành YYYY-MM-DD mà không phụ thuộc vào múi giờ
 const formatDateToString = (date) => {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0'); // Tháng bắt đầu từ 0, cần +1
+  const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
 
-// Fetch dữ liệu lịch làm việc từ API
 const fetchSchedules = async () => {
   try {
     const response = await axios.get('http://localhost:8080/EcoIT/intern-work-schedules');
-    console.log('Dữ liệu lịch làm việc từ API:', response.data); // Debug dữ liệu
+    console.log('Dữ liệu lịch làm việc từ API:', response.data);
     schedules.value = response.data;
   } catch (error) {
     console.error('Lỗi khi lấy lịch làm việc:', error.message);
-    if (error.response) {
-      console.error('Mã trạng thái:', error.response.status);
-      console.error('Thông tin lỗi:', error.response.data);
-    }
+    errorMessage.value = 'Không thể tải danh sách lịch làm việc. Vui lòng thử lại.';
   }
 };
 
-// Fetch danh sách thực tập sinh làm việc theo ngày
 const fetchInternsByDate = async (date) => {
-  const formattedDate = date; // Đã ở dạng YYYY-MM-DD
+  const formattedDate = date;
   try {
     const response = await axios.get(`http://localhost:8080/EcoIT/intern-work-schedules/by-date?date=${formattedDate}`);
-    console.log(`Dữ liệu lịch làm việc cho ngày ${formattedDate}:`, response.data); // Debug dữ liệu
-
-    // Lọc thực tập sinh duy nhất dựa trên intern.id
+    console.log(`Dữ liệu lịch làm việc cho ngày ${formattedDate}:`, response.data);
     const uniqueInterns = [];
     const seenInternIds = new Set();
     response.data.forEach(schedule => {
-      if (schedule.intern && !seenInternIds.has(schedule.intern.id)) {
+      if (schedule.intern && schedule.intern.id && schedule.intern.name && !seenInternIds.has(schedule.intern.id)) {
         seenInternIds.add(schedule.intern.id);
         uniqueInterns.push({
           id: schedule.intern.id,
-          name: schedule.intern.name
+          name: schedule.intern.name,
         });
       }
     });
-
     console.log(`Danh sách thực tập sinh làm việc cho ngày ${formattedDate}:`, uniqueInterns);
     return uniqueInterns;
   } catch (error) {
     console.error('Lỗi khi lấy thực tập sinh theo ngày:', error.message);
-    if (error.response) {
-      console.error('Mã trạng thái:', error.response.status);
-      console.error('Thông tin lỗi:', error.response.data);
-    }
+    errorMessage.value = 'Không thể tải danh sách thực tập sinh. Vui lòng thử lại.';
     return [];
   }
 };
 
-// Hàm lấy số lượng thực tập sinh làm việc theo ngày
 const getInternCountByDate = (date) => {
-  const formattedDate = date; // Đã ở dạng YYYY-MM-DD
-
-  // Lọc các lịch có ngày nằm trong khoảng start_date đến end_date
+  const formattedDate = date;
   const uniqueInternIds = new Set();
   schedules.value.forEach(schedule => {
-    const startDate = schedule.startDate.split('T')[0]; // Lấy YYYY-MM-DD từ start_date
-    const endDate = schedule.endDate ? schedule.endDate.split('T')[0] : formatDateToString(new Date()); // Nếu end_date null, dùng ngày hiện tại
+    const startDate = schedule.startDate.split('T')[0];
+    const endDate = schedule.endDate ? schedule.endDate.split('T')[0] : formatDateToString(new Date());
     const isInRange = formattedDate >= startDate && formattedDate <= endDate;
     if (isInRange && schedule.intern) {
       uniqueInternIds.add(schedule.intern.id);
     }
     console.log(`Ngày ${formattedDate} - Schedule: start=${startDate}, end=${endDate}, isInRange=${isInRange}, internId=${schedule.intern ? schedule.intern.id : 'null'}`);
   });
-
   const count = uniqueInternIds.size;
   console.log(`Số lượng thực tập sinh làm việc cho ngày ${formattedDate}: ${count}`);
   return count;
 };
 
-// Tạo danh sách ngày trong tháng
 const daysInMonth = computed(() => {
   const year = currentDate.value.getFullYear();
   const month = currentDate.value.getMonth();
   const days = [];
   const totalDays = new Date(year, month + 1, 0).getDate();
-
   for (let i = 1; i <= totalDays; i++) {
     const date = new Date(year, month, i);
     days.push({
-      date: formatDateToString(date), // Lưu dưới dạng chuỗi YYYY-MM-DD
-      displayDate: date // Dùng để hiển thị
+      date: formatDateToString(date),
+      displayDate: date,
     });
   }
-
   return days;
 });
 
-// Chuyển tháng trước/sau
 const changeMonth = (offset) => {
   const newMonth = new Date(
       currentDate.value.getFullYear(),
@@ -166,21 +304,18 @@ const changeMonth = (offset) => {
   fetchSchedules();
 };
 
-// Xử lý khi click vào ngày
 const selectDay = async (day) => {
   selectedDay.value = day;
-  selectedDayInterns.value = await fetchInternsByDate(day);
+  selectedDayInterns.value = (await fetchInternsByDate(day)) || [];
   showModal.value = true;
 };
 
-// Đóng modal
 const closeModal = () => {
   showModal.value = false;
   selectedDay.value = null;
   selectedDayInterns.value = [];
 };
 
-// Load dữ liệu khi component được mount
 onMounted(() => {
   fetchSchedules();
 });
@@ -269,7 +404,6 @@ h2 {
   font-weight: 700;
 }
 
-/* Modal Styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -353,5 +487,109 @@ h2 {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+.button-add {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.button-add button {
+  padding: 12px 24px;
+  background-color: green;
+  color: white;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.button-add button:hover {
+  background-color: #42b983;
+}
+
+.modal-new {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-new .modal-content {
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease;
+}
+
+.form-add {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-control {
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.bg-red-500 {
+  background-color: #e53e3e;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.bg-red-500:hover {
+  background-color: #c53030;
+}
+
+.bg-green-600 {
+  background-color: #38a169;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.bg-green-600:hover {
+  background-color: #2f855a;
+}
+
+.error-message {
+  color: #e53e3e;
+  font-size: 1rem;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.success-message {
+  color: #38a169;
+  font-size: 1rem;
+  text-align: center;
+  margin-bottom: 16px;
 }
 </style>
