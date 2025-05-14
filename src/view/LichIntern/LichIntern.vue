@@ -1,54 +1,83 @@
+```vue
 <template>
   <HeaderHome />
   <div class="calendar-container">
-    <div class="button-add">
-      <button @click="openModelupdate">
-        <i class="fa-solid fa-pen-to-square"></i>
-      </button>
+    <div class="thanh-chuc-nang">
+      <div class="search-bar">
+        <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Tìm kiếm theo tên intern..."
+            class="search-input"
+        />
+        <button v-if="searchQuery" @click="clearSearch" class="clear-button">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+      <div class="button-add">
+        <button @click="openModelupdate">
+          <i class="fa-solid fa-pen-to-square"></i>
+        </button>
+      </div>
     </div>
+
+
+    <div class="bo_loc">
+      <input type="date" name="" id="">
+      <input type="date" name="" id="">
+    </div>
+
     <h2>Lịch Thực Tập Sinh - Tháng {{ currentDate.toLocaleString('vi-VN', { month: 'long', year: 'numeric' }) }}</h2>
+
+
 
     <div class="month-navigation">
       <button @click="changeMonth(-1)">Tháng trước</button>
       <button @click="changeMonth(1)">Tháng sau</button>
     </div>
 
-    <div class="days-list">
-      <div
-          v-for="day in daysInMonth"
-          :key="day.date"
-          class="day-card"
-          :class="{ 'has-interns': getInternCountByDate(day.date) > 0 }"
-          @click="selectDay(day.date)"
-      >
-        <h3>
-          {{ new Date(day.date).toLocaleDateString('vi-VN', { weekday: 'short', day: 'numeric' }) }}
-          <span class="intern-count">({{ getInternCountByDate(day.date) }})</span>
-        </h3>
-      </div>
-    </div>
-
-    <!-- Modal hiển thị danh sách thực tập sinh -->
-    <div v-if="showModal && selectedDay" class="modal-overlay">
-      <div class="modal-content">
-        <h3>
-          {{
-            new Date(selectedDay).toLocaleDateString('vi-VN', {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric'
-            })
-          }}
-        </h3>
-        <ul v-if="selectedDayInterns.length > 0">
-          <li v-for="intern in selectedDayInterns" :key="intern.id">
-            <span class="intern-name">{{ intern.name }}</span>
-          </li>
-        </ul>
-        <p v-else>Không có thực tập sinh làm việc trong ngày này.</p>
-        <button class="modal-close" @click="closeModal">Đóng</button>
-      </div>
+    <div class="calendar-view">
+      <table class="calendar-table">
+        <thead>
+        <tr>
+          <th>Thứ Hai</th>
+          <th>Thứ Ba</th>
+          <th>Thứ Tư</th>
+          <th>Thứ Năm</th>
+          <th>Thứ Sáu</th>
+          <th>Thứ Bảy</th>
+          <th>Chủ Nhật</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr v-for="(week, weekIndex) in weeksInMonth" :key="weekIndex">
+          <td
+              v-for="day in week"
+              :key="day.date"
+              class="day-cell"
+              :class="{
+                'has-interns': getInternCountByDate(day.date) > 0,
+                'not-in-month': !day.isInCurrentMonth,
+                'filtered': searchQuery && !isDayRelevant(day.date)
+              }"
+              @click="day.isInCurrentMonth && selectDay(day.date)"
+          >
+            <div v-if="day.date" class="day-content">
+              <span class="day-number">{{ new Date(day.date).getDate() }}</span>
+              <span class="intern-count">({{ getInternCountByDate(day.date) }})</span>
+              <div v-if="selectedDay === day.date" class="intern-list">
+                <ul v-if="filteredInterns(day.date).length > 0">
+                  <li v-for="intern in filteredInterns(day.date)" :key="intern.id" class="intern-name">
+                    {{ intern.name }}
+                  </li>
+                </ul>
+                <p v-else>Không có thực tập sinh làm việc trong ngày này.</p>
+              </div>
+            </div>
+          </td>
+        </tr>
+        </tbody>
+      </table>
     </div>
 
     <!-- Modal cập nhật InternWorkSchedule -->
@@ -103,7 +132,7 @@
                   required
               />
             </div>
-            <div style="display: flex;justify-content: flex-end;gap: 10px;margin-top: 20px">
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px">
               <button type="button" class="bg-red-500" @click="closeModelupdate">Đóng</button>
               <button type="submit" class="bg-green-600">Lưu</button>
             </div>
@@ -115,7 +144,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import HeaderHome from '@/view/FooterHeader/HeaderHome.vue';
 import axios from 'axios';
 
@@ -131,6 +160,11 @@ const scheduleId = ref(null);
 const showModelupdate = ref(false);
 const errorMessage = ref('');
 const successMessage = ref('');
+const searchQuery = ref('');
+const currentDate = ref(new Date(2025, 4, 1));
+const selectedDay = ref(null);
+const schedules = ref([]);
+const selectedDayInterns = ref([]);
 
 const openModelupdate = async () => {
   await fetchInterns();
@@ -211,12 +245,6 @@ const submitUpdate = async () => {
   }
 };
 
-const currentDate = ref(new Date(2025, 4, 1));
-const selectedDay = ref(null);
-const showModal = ref(false);
-const schedules = ref([]);
-const selectedDayInterns = ref([]);
-
 const formatDateToString = (date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -261,6 +289,7 @@ const fetchInternsByDate = async (date) => {
 };
 
 const getInternCountByDate = (date) => {
+  if (!date) return 0;
   const formattedDate = date;
   const uniqueInternIds = new Set();
   schedules.value.forEach(schedule => {
@@ -268,28 +297,66 @@ const getInternCountByDate = (date) => {
     const endDate = schedule.endDate ? schedule.endDate.split('T')[0] : formatDateToString(new Date());
     const isInRange = formattedDate >= startDate && formattedDate <= endDate;
     if (isInRange && schedule.intern) {
-      uniqueInternIds.add(schedule.intern.id);
+      if (!searchQuery.value || schedule.intern.name.toLowerCase().includes(searchQuery.value.toLowerCase())) {
+        uniqueInternIds.add(schedule.intern.id);
+      }
     }
-    console.log(`Ngày ${formattedDate} - Schedule: start=${startDate}, end=${endDate}, isInRange=${isInRange}, internId=${schedule.intern ? schedule.intern.id : 'null'}`);
   });
-  const count = uniqueInternIds.size;
-  console.log(`Số lượng thực tập sinh làm việc cho ngày ${formattedDate}: ${count}`);
-  return count;
+  return uniqueInternIds.size;
 };
 
-const daysInMonth = computed(() => {
+const isDayRelevant = (date) => {
+  if (!date || !searchQuery.value) return true;
+  const formattedDate = date;
+  return schedules.value.some(schedule => {
+    const startDate = schedule.startDate.split('T')[0];
+    const endDate = schedule.endDate ? schedule.endDate.split('T')[0] : formatDateToString(new Date());
+    const isInRange = formattedDate >= startDate && formattedDate <= endDate;
+    return isInRange && schedule.intern && schedule.intern.name.toLowerCase().includes(searchQuery.value.toLowerCase());
+  });
+};
+
+const filteredInterns = (date) => {
+  if (!date) return [];
+  if (!searchQuery.value) return selectedDayInterns.value;
+  return selectedDayInterns.value.filter(intern => intern.name.toLowerCase().includes(searchQuery.value.toLowerCase()));
+};
+
+const weeksInMonth = computed(() => {
   const year = currentDate.value.getFullYear();
   const month = currentDate.value.getMonth();
-  const days = [];
-  const totalDays = new Date(year, month + 1, 0).getDate();
-  for (let i = 1; i <= totalDays; i++) {
-    const date = new Date(year, month, i);
-    days.push({
-      date: formatDateToString(date),
-      displayDate: date,
-    });
+  const firstDayOfMonth = new Date(year, month, 1);
+  const lastDayOfMonth = new Date(year, month + 1, 0);
+  const daysInMonth = lastDayOfMonth.getDate();
+  const firstDayWeekday = firstDayOfMonth.getDay() || 7;
+  const weeks = [];
+  let currentWeek = [];
+
+  for (let i = 1; i < firstDayWeekday; i++) {
+    currentWeek.push({ date: null, isInCurrentMonth: false });
   }
-  return days;
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month, day);
+    currentWeek.push({
+      date: formatDateToString(date),
+      isInCurrentMonth: true,
+    });
+
+    if (currentWeek.length === 7) {
+      weeks.push(currentWeek);
+      currentWeek = [];
+    }
+  }
+
+  if (currentWeek.length > 0) {
+    while (currentWeek.length < 7) {
+      currentWeek.push({ date: null, isInCurrentMonth: false });
+    }
+    weeks.push(currentWeek);
+  }
+
+  return weeks;
 });
 
 const changeMonth = (offset) => {
@@ -300,21 +367,30 @@ const changeMonth = (offset) => {
   );
   currentDate.value = newMonth;
   selectedDay.value = null;
-  showModal.value = false;
+  selectedDayInterns.value = [];
   fetchSchedules();
 };
 
 const selectDay = async (day) => {
-  selectedDay.value = day;
-  selectedDayInterns.value = (await fetchInternsByDate(day)) || [];
-  showModal.value = true;
+  if (selectedDay.value === day) {
+    selectedDay.value = null;
+    selectedDayInterns.value = [];
+  } else {
+    selectedDay.value = day;
+    selectedDayInterns.value = await fetchInternsByDate(day) || [];
+  }
 };
 
-const closeModal = () => {
-  showModal.value = false;
+const clearSearch = () => {
+  searchQuery.value = '';
   selectedDay.value = null;
   selectedDayInterns.value = [];
 };
+
+watch(searchQuery, () => {
+  selectedDay.value = null;
+  selectedDayInterns.value = [];
+});
 
 onMounted(() => {
   fetchSchedules();
@@ -340,6 +416,47 @@ h2 {
   text-align: center;
 }
 
+/* Thanh tìm kiếm */
+.search-bar {
+  width: 100%;
+
+}
+.thanh-chuc-nang{
+  gap: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.search-input {
+  width: 100%;
+  padding: 10px 40px 10px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+}
+
+.clear-button {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #718096;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.clear-button:hover {
+  color: #2d3748;
+}
+
 .month-navigation {
   display: flex;
   justify-content: center;
@@ -363,130 +480,103 @@ h2 {
   background-color: #2b6cb0;
 }
 
-.days-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
+.calendar-view {
+  margin-top: 20px;
 }
 
-.day-card {
+.calendar-table {
+  width: 100%;
+  border-collapse: collapse;
   background-color: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 16px;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
 }
 
-.day-card.has-interns {
+.calendar-table th {
+  background-color: #f7fafc;
+  color: #2d3748;
+  font-weight: 600;
+  padding: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.day-cell {
+  border: 1px solid #e2e8f0;
+  height: 150px;
+  vertical-align: top;
+  padding: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.day-cell.has-interns {
   background-color: #e6fffa;
   border-color: #4fd1c5;
 }
 
-.day-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+.day-cell:hover:not(.not-in-month):not(.filtered) {
+  background-color: #edf2f7;
 }
 
-.day-card h3 {
+.day-cell.not-in-month {
+  background-color: #f7fafc;
+  cursor: default;
+}
+
+.day-cell.filtered {
+  background-color: #f7fafc;
+  opacity: 0.5;
+  cursor: default;
+}
+
+.day-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+
+.day-number {
   color: #2d3748;
   font-size: 1.1rem;
   font-weight: 600;
-  margin-bottom: 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  margin-bottom: 4px;
 }
 
 .intern-count {
   color: #4fd1c5;
   font-size: 0.9rem;
   font-weight: 700;
+  margin-bottom: 8px;
 }
 
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background-color: #fff;
-  border-radius: 12px;
-  padding: 24px;
-  max-width: 500px;
-  width: 90%;
-  max-height: 80vh;
+.intern-list {
+  width: 100%;
+  max-height: 80px;
   overflow-y: auto;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-  animation: fadeIn 0.3s ease;
-}
-
-.modal-content h3 {
+  font-size: 0.85rem;
   color: #2d3748;
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin-bottom: 16px;
 }
 
-.modal-content ul {
+.intern-list ul {
   list-style: none;
   padding: 0;
-  margin-bottom: 24px;
+  margin: 0;
 }
 
-.modal-content li {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px 0;
-  border-bottom: 1px solid #edf2f7;
+.intern-list li {
+  padding: 4px 0;
+  text-align: center;
+  border-top: 1px solid #e2e8f0;
 }
 
-.intern-name {
-  color: #2d3748;
-  font-weight: 600;
-}
-
-.modal-content p {
+.intern-list p {
+  font-size: 0.85rem;
   color: #718096;
-  font-size: 1rem;
-  margin-bottom: 24px;
-}
-
-.modal-close {
-  display: block;
-  width: 100%;
-  padding: 12px;
-  background-color: #e53e3e;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.modal-close:hover {
-  background-color: #c53030;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  text-align: center;
+  margin: 0;
 }
 
 .button-add {
@@ -592,4 +682,32 @@ h2 {
   text-align: center;
   margin-bottom: 16px;
 }
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.bo_loc {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  margin: 20px 0;
+}
+.bo_loc input[type="date"] {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
 </style>
+```

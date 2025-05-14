@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import HeaderHome from '@/view/FooterHeader/HeaderHome.vue';
-import { getAllInterns, addIntern, deleteIntern, updateIntern } from '@/view/NewIntern/Js/intern';
+import { getAllInterns, addIntern, deleteIntern, updateIntern , thanhSearch } from '@/view/NewIntern/Js/intern';
 import FooterHome from "@/view/FooterHeader/FooterHome.vue";
 // Biến phản ứng
 const items = ref([]); // Lưu danh sách intern
@@ -14,6 +14,37 @@ const currentPage = ref(0); // Trang hiện tại
 const pageSize = ref(5); // Số mục trên mỗi trang
 const totalPages = ref(0); // Tổng số trang
 const totalItems = ref(0); // Tổng số intern
+const keyword = ref(''); // Lưu từ khóa tìm kiếm
+const isSearching = ref(false); // Trạng thái tìm kiếm
+
+
+const handleSearch = async () => {
+  if (!keyword.value.trim()) {
+    // Nếu không có từ khóa, tải lại toàn bộ danh sách
+    loading.value = true;
+    await fetchAllData(0);
+    return;
+  }
+
+  loading.value = true;
+  error.value = null;
+
+  try {
+    const data = await thanhSearch(keyword.value);
+    items.value = data; // Giả sử API trả về danh sách intern
+    currentPage.value = 0; // Reset trang về 0
+    totalItems.value = data.length;
+    totalPages.value = Math.ceil(totalItems.value / pageSize.value);
+    isSearching.value = true;
+  } catch (err) {
+    error.value = 'Không thể tìm kiếm intern. Vui lòng thử lại!';
+    items.value = [];
+    totalItems.value = 0;
+    totalPages.value = 0;
+  } finally {
+    loading.value = false;
+  }
+};
 
 // Hàm gọi API
 const fetchAllData = async (page = 0) => {
@@ -141,10 +172,16 @@ onMounted(() => fetchAllData(currentPage.value));
   <HeaderHome />
   <img src="@/assets/banner.jpg" alt="Banner" />
   <div class="concak mx-auto px-4 py-10">
-    <div class="mb-3 flex justify-end">
-      <button class="bg-green-600" @click="openModel">
-        <i class="fa-solid fa-plus"></i>
-      </button>
+    <div style="display: flex;justify-content: space-between;margin-bottom: 20px">
+      <div class="search-navbar">
+        <input placeholder="Search..." v-model="keyword" class="form-control" @keyup.enter="handleSearch" type="text" name="" id="">
+      </div>
+
+      <div>
+        <button class="bg-green-600" @click="openModel">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+      </div>
     </div>
     <div v-if="loading" class="text-center">Đang tải...</div>
     <div v-else-if="error" class="text-center text-red-500">{{ error }}</div>
@@ -401,4 +438,8 @@ button svg {
 .pagination button {
   margin: 0 5px;
 }
+.search-navbar{
+  width: 30%;
+}
+
 </style>

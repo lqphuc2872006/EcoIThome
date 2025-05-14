@@ -1,22 +1,21 @@
 <script setup>
-// Nếu cần logic gì cho header/footer có thể viết tại đây
 import HeaderHome from "@/view/FooterHeader/HeaderHome.vue";
 import FooterHome from "@/view/FooterHeader/FooterHome.vue";
 </script>
 
 <template>
   <div class="layout">
-      <HeaderHome/>
+    <HeaderHome />
     <main class="main-content">
-      <img class="banner" src="@/assets/banner.jpg" alt="Banner">
+      <img class="banner" src="@/assets/banner.jpg" alt="Banner" />
     </main>
+    <FooterHome />
   </div>
-  <FooterHome/>
 </template>
 
 <style scoped>
 /* Reset cơ bản */
-body {
+* {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -29,23 +28,53 @@ body {
   min-height: 100vh;
 }
 
-/* Header */
-.header {
-  background-color: black;
-  color: white;
-  padding: 16px;
-  text-align: center;
+/* Main content */
+.main-content {
+  flex: 1;
 }
 
+/* Banner */
 .banner {
   width: 100%;
   height: 100vh;
 }
 
+/* Style cho HeaderHome */
+.header {
+  background-color: #000;
+  color: #fff;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+}
+
+/* Style cho menu trong HeaderHome */
+.nav-menu {
+  display: flex;
+  flex-direction: row; /* Menu nằm ngang */
+  gap: 20px;
+  align-items: center;
+}
+
+/* Style cho các mục menu */
+.nav-menu a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 16px;
+  transition: color 0.3s;
+}
+
+.nav-menu a:hover {
+  color: #ccc;
+}
+
+/* Footer */
 .footer {
   background-color: #222;
-  color: white;
+  color: #fff;
   text-align: center;
-  padding: 10px;
+  padding: 20px;
+  font-size: 14px;
 }
+
 </style>

@@ -12,6 +12,19 @@ export const getAllInterns = async (page = 0, size = 5) => {
     }
 };
 
+export const thanhSearch = async (keyword = '') => {
+    try {
+        const response = await axios.get(`http://localhost:8080/EcoIT/searchIntern`, {
+            params: { keyword }
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Lỗi khi lấy danh sách intern:', error);
+        throw error;
+    }
+};
+
+
 export const addIntern = async (internData) => {
     try {
         const response = await axios.post(`http://localhost:8080/EcoIT/intern-add`, internData);
@@ -41,4 +54,5 @@ export const updateIntern = async (id, internData) => {
         throw error;
     }
 };
+
 
