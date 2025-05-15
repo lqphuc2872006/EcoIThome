@@ -10,6 +10,18 @@ export const getAllHopIntern = async  () => {
     }
 };
 
+export const getSearch = async  (keyword = '') => {
+    try {
+        const response = await axios.get('http://localhost:8080/EcoIT/searchHopIntern', {
+            params: {keyword}
+        });
+        return response.data;
+    } catch (error) {
+        console.error("loi k search intern",error);
+        throw error;
+    }
+};
+
 export const getAllMentor = async  () => {
     try {
         const response = await axios.get('http://localhost:8080/EcoIT/mentor');

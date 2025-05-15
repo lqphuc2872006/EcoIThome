@@ -2,7 +2,6 @@
 import { ref, onMounted } from 'vue';
 import HeaderHome from '@/view/FooterHeader/HeaderHome.vue';
 import { getAllInterns, addIntern, deleteIntern, updateIntern , thanhSearch } from '@/view/NewIntern/Js/intern';
-import FooterHome from "@/view/FooterHeader/FooterHome.vue";
 // Biến phản ứng
 const items = ref([]); // Lưu danh sách intern
 const loading = ref(true); // Trạng thái tải
@@ -169,91 +168,99 @@ onMounted(() => fetchAllData(currentPage.value));
 </script>
 
 <template>
-  <HeaderHome />
-  <img src="@/assets/banner.jpg" alt="Banner" />
-  <div class="concak mx-auto px-4 py-10">
-    <div style="display: flex;justify-content: space-between;margin-bottom: 20px">
-      <div class="search-navbar">
-        <input placeholder="Search..." v-model="keyword" class="form-control" @keyup.enter="handleSearch" type="text" name="" id="">
-      </div>
-
-      <div>
-        <button class="bg-green-600" @click="openModel">
-          <i class="fa-solid fa-plus"></i>
-        </button>
+  <div>
+    <div class="main-header">
+      <HeaderHome />
+      <div class="banner-wrapper">
+        <img class="main_banner" src="@/assets/banner.jpg" alt="Banner" />
+        <div class="overlay"></div>
+        <div class="main_text">Danh sách thực tập</div>
       </div>
     </div>
-    <div v-if="loading" class="text-center">Đang tải...</div>
-    <div v-else-if="error" class="text-center text-red-500">{{ error }}</div>
-    <table v-else class="w-full bg-white rounded-lg shadow-lg overflow-hidden">
-      <thead class="bg-green-600 text-white">
-      <tr>
-        <th class="py-3 px-4 text-left">#</th>
-        <th class="py-3 px-4 text-left">Name</th>
-        <th class="py-3 px-4 text-left">Date of Birth</th>
-        <th class="py-3 px-4 text-left">Gender</th>
-        <th class="py-3 px-4 text-left">Start Date</th>
-        <th class="py-3 px-4 text-left">Next Review Date</th>
-        <th class="py-3 px-4 text-left">Action</th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr
-          v-for="(intern, index) in items"
-          :key="intern.id"
-          class="hover:bg-gray-100 transition-colors"
-      >
-        <th class="py-3 px-4 border-b border-gray-200">{{ index + 1 + (currentPage * pageSize) }}</th>
-        <td class="py-3 px-4 border-b border-gray-200">{{ intern.name }}</td>
-        <td class="py-3 px-4 border-b border-gray-200">{{ intern.dateOfBirth }}</td>
-        <td class="py-3 px-4 border-b border-gray-200">{{ intern.gender ? 'Nam' : 'Nữ' }}</td>
-        <td class="py-3 px-4 border-b border-gray-200">{{ intern.startDate }}</td>
-        <td class="py-3 px-4 border-b border-gray-200">{{ intern.nextReviewDate }}</td>
-        <td class="py-3 px-4 border-b border-gray-200">
-          <div class="button-click">
-            <button
-                @click="openEditModel(intern)"
-                class="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-md"
-                title="Cập nhật"
-            >
-              <i class="fa-solid fa-pencil"></i>
-            </button>
-            <button
-                @click="handleDeleteIntern(intern.id)"
-                class="p-2 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-md"
-                title="Xóa"
-            >
-              <i class="fa-solid fa-trash"></i>
-            </button>
-          </div>
-        </td>
-      </tr>
-      </tbody>
-    </table>
-    <!-- Phân trang -->
-    <div v-if="!loading && items.length" class="pagination mt-4 flex justify-center gap-2">
-      <button
-          :disabled="currentPage === 0"
-          @click="prevPage"
-          class="bg-blue-600 text-white px-4 py-2 rounded disabled:bg-gray-400"
-      >
-        Trang trước
-      </button>
-      <button
-          v-for="page in totalPages"
-          :key="page"
-          @click="goToPage(page - 1)"
-          :class="['px-4 py-2 rounded', currentPage === page - 1 ? 'bg-green-600 text-white' : 'bg-gray-200']"
-      >
-        {{ page }}
-      </button>
-      <button
-          :disabled="currentPage === totalPages - 1"
-          @click="nextPage"
-          class="bg-blue-600 text-white px-4 py-2 rounded disabled:bg-gray-400"
-      >
-        Trang sau
-      </button>
+    <div class="concak">
+      <div style="display: flex;justify-content: space-between;margin-bottom: 20px">
+        <div class="search-navbar">
+          <input placeholder="Search..." v-model="keyword" class="form-control" @keyup.enter="handleSearch" type="text" name="" id="">
+        </div>
+
+        <div>
+          <button class="bg-green-600" @click="openModel">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+        </div>
+      </div>
+      <div v-if="loading" class="text-center">Đang tải...</div>
+      <div v-else-if="error" class="text-center text-red-500">{{ error }}</div>
+      <table v-else class="w-full bg-white rounded-lg shadow-lg overflow-hidden">
+        <thead class="bg-green-600 text-white">
+        <tr>
+          <th class="py-3 px-4 text-left">#</th>
+          <th class="py-3 px-4 text-left">Name</th>
+          <th class="py-3 px-4 text-left">Date of Birth</th>
+          <th class="py-3 px-4 text-left">Gender</th>
+          <th class="py-3 px-4 text-left">Start Date</th>
+          <th class="py-3 px-4 text-left">Next Review Date</th>
+          <th class="py-3 px-4 text-left">Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr
+            v-for="(intern, index) in items"
+            :key="intern.id"
+            class="hover:bg-gray-100 transition-colors"
+        >
+          <th class="py-3 px-4 border-b border-gray-200">{{ index + 1 + (currentPage * pageSize) }}</th>
+          <td class="py-3 px-4 border-b border-gray-200">{{ intern.name }}</td>
+          <td class="py-3 px-4 border-b border-gray-200">{{ intern.dateOfBirth }}</td>
+          <td class="py-3 px-4 border-b border-gray-200">{{ intern.gender ? 'Nam' : 'Nữ' }}</td>
+          <td class="py-3 px-4 border-b border-gray-200">{{ intern.startDate }}</td>
+          <td class="py-3 px-4 border-b border-gray-200">{{ intern.nextReviewDate }}</td>
+          <td class="py-3 px-4 border-b border-gray-200">
+            <div class="button-click">
+              <button
+                  @click="openEditModel(intern)"
+                  class="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-md"
+                  title="Cập nhật"
+              >
+                <i class="fa-solid fa-pencil"></i>
+              </button>
+              <button
+                  @click="handleDeleteIntern(intern.id)"
+                  class="p-2 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-md"
+                  title="Xóa"
+              >
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+      <!-- Phân trang -->
+      <div v-if="!loading && items.length" class="pagination mt-4 flex justify-center gap-2">
+        <button
+            :disabled="currentPage === 0"
+            @click="prevPage"
+            class="bg-blue-600 text-white px-4 py-2 rounded disabled:bg-gray-400"
+        >
+          Trang trước
+        </button>
+        <button
+            v-for="page in totalPages"
+            :key="page"
+            @click="goToPage(page - 1)"
+            :class="['px-4 py-2 rounded', currentPage === page - 1 ? 'bg-green-600 text-white' : 'bg-gray-200']"
+        >
+          {{ page }}
+        </button>
+        <button
+            :disabled="currentPage === totalPages - 1"
+            @click="nextPage"
+            class="bg-blue-600 text-white px-4 py-2 rounded disabled:bg-gray-400"
+        >
+          Trang sau
+        </button>
+      </div>
     </div>
   </div>
   <!-- Modal -->
@@ -319,7 +326,6 @@ onMounted(() => fetchAllData(currentPage.value));
       </div>
     </div>
   </div>
-  <FooterHome />
 </template>
 
 <style scoped>
@@ -335,7 +341,34 @@ onMounted(() => fetchAllData(currentPage.value));
   align-items: center;
   z-index: 1000;
 }
-
+.banner-wrapper {
+  position: relative;
+}
+.main_banner{
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+  display: block;
+}
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 300px;
+  background-color: rgba(0, 0, 0, 0.4); /* phủ đen */
+}
+.main_text{
+  position: absolute;
+  top: 50%;
+  left: 55%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 28px;
+  font-weight: bold;
+  z-index: 2;
+  text-align: center;
+}
 .modal-content {
   background: white;
   border-radius: 10px;
@@ -345,16 +378,12 @@ onMounted(() => fetchAllData(currentPage.value));
 }
 
 .concak {
-  position: absolute;
-  top: 40%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 100%;
-}
 
-img {
-  width: 100%;
-  height: 100vh;
+  position: absolute;
+  top: 65%;
+  left: 58%;
+  transform: translate(-50%, -50%);
+  width: 80%;
 }
 
 /* Style cho bảng */

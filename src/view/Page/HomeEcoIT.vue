@@ -1,15 +1,15 @@
 <script setup>
 import HeaderHome from "@/view/FooterHeader/HeaderHome.vue";
-import FooterHome from "@/view/FooterHeader/FooterHome.vue";
 </script>
 
 <template>
   <div class="layout">
-    <HeaderHome />
-    <main class="main-content">
+    <div>
+      <HeaderHome />
+    </div>
+    <div class="main_banner">
       <img class="banner" src="@/assets/banner.jpg" alt="Banner" />
-    </main>
-    <FooterHome />
+    </div>
   </div>
 </template>
 
@@ -39,22 +39,7 @@ import FooterHome from "@/view/FooterHeader/FooterHome.vue";
   height: 100vh;
 }
 
-/* Style cho HeaderHome */
-.header {
-  background-color: #000;
-  color: #fff;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-}
 
-/* Style cho menu trong HeaderHome */
-.nav-menu {
-  display: flex;
-  flex-direction: row; /* Menu nằm ngang */
-  gap: 20px;
-  align-items: center;
-}
 
 /* Style cho các mục menu */
 .nav-menu a {
@@ -67,14 +52,8 @@ import FooterHome from "@/view/FooterHeader/FooterHome.vue";
 .nav-menu a:hover {
   color: #ccc;
 }
-
-/* Footer */
-.footer {
-  background-color: #222;
-  color: #fff;
-  text-align: center;
-  padding: 20px;
-  font-size: 14px;
+.main_banner{
+  margin-left: 250px;
 }
 
 </style>

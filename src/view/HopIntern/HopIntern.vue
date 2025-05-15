@@ -1,7 +1,7 @@
 <script setup>
 import HeaderHome from "@/view/FooterHeader/HeaderHome.vue";
 import FooterHome from "@/view/FooterHeader/FooterHome.vue";
-import { getAllHopIntern, detailIntern,updateIntern,deletedIntern,addIntern, getAllMentor } from "@/view/HopIntern/Hopintern";
+import { getAllHopIntern, detailIntern,updateIntern,deletedIntern,addIntern, getAllMentor,getSearch } from "@/view/HopIntern/Hopintern";
 import { ref, onMounted } from "vue";
 
 const showModel = ref(false);
@@ -106,6 +106,26 @@ const deleted = async (id) =>{
 const items = ref([]);
 
 const mentor = ref([]);
+//timkiem
+const keyword = ref('');
+const isLoading = ref(false);
+const handleSearch = async () => {
+  try {
+    isLoading.value = true;
+    errorMessage.value = "";
+    if (!keyword.value.trim()) {
+      await fetchInterns();
+    } else {
+      const data = await getSearch(keyword.value);
+      items.value = data;
+    }
+  } catch (error) {
+    errorMessage.value = `Lỗi khi tìm kiếm: ${error.message}`;
+    console.error("Lỗi khi tìm kiếm:", error);
+  } finally {
+    isLoading.value = false;
+  }
+};
 
 // Lấy danh sách cuộc họp
 const fetchInterns = async () => {
@@ -162,10 +182,16 @@ onMounted(() => {
   <main>
     <img src="@/assets/banner.jpg" alt="Banner" />
     <div class="concak mx-auto px-4 py-10">
-      <div class="mb-3 flex justify-end">
-        <button class="bg-green-600" @click="openModelAdd">
-          <i class="fa-solid fa-plus"></i>
-        </button>
+      <div style="justify-content: space-between;display: flex">
+        <div class="thanh-search">
+          <input v-model="keyword" @keyup.enter="handleSearch" placeholder="Search..." type="text" class="form-control" name="" id="">
+        </div>
+
+        <div>
+          <button class="bg-green-600" @click="openModelAdd">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+        </div>
       </div>
       <table class="w-full bg-white rounded-lg shadow-lg overflow-hidden">
         <thead class="bg-green-600 text-white">
@@ -444,5 +470,9 @@ button {
     opacity: 1;
     transform: translateY(0);
   }
+}
+.thanh-search{
+  width: 30%;
+  margin-bottom: 20px;
 }
 </style>
