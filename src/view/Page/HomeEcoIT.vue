@@ -1,5 +1,6 @@
 <script setup>
 import HeaderHome from "@/view/FooterHeader/HeaderHome.vue";
+import FooterHome from "@/view/FooterHeader/FooterHome.vue";
 </script>
 
 <template>
@@ -11,6 +12,7 @@ import HeaderHome from "@/view/FooterHeader/HeaderHome.vue";
       <img class="banner" src="@/assets/banner.jpg" alt="Banner" />
     </div>
   </div>
+  <FooterHome/>
 </template>
 
 <style scoped>

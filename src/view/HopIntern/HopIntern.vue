@@ -1,6 +1,5 @@
 <script setup>
 import HeaderHome from "@/view/FooterHeader/HeaderHome.vue";
-import FooterHome from "@/view/FooterHeader/FooterHome.vue";
 import { getAllHopIntern, detailIntern,updateIntern,deletedIntern,addIntern, getAllMentor,getSearch } from "@/view/HopIntern/Hopintern";
 import { ref, onMounted } from "vue";
 
@@ -178,10 +177,17 @@ onMounted(() => {
 </script>
 
 <template>
-  <HeaderHome />
-  <main>
-    <img src="@/assets/banner.jpg" alt="Banner" />
-    <div class="concak mx-auto px-4 py-10">
+    <div>
+      <HeaderHome />
+      <div class="banner-wrapper">
+        <img class="main_banner" src="@/assets/banner.jpg" alt="Banner" />
+        <div class="overlay"></div>
+        <div class="main_text">Danh sách Cuộc Họp</div>
+      </div>
+    </div>
+
+  <div>
+         <div class="concak mx-auto px-4 py-10">
       <div style="justify-content: space-between;display: flex">
         <div class="thanh-search">
           <input v-model="keyword" @keyup.enter="handleSearch" placeholder="Search..." type="text" class="form-control" name="" id="">
@@ -378,21 +384,45 @@ onMounted(() => {
         </div>
       </div>
     </div>
-  </main>
-  <FooterHome />
+  </div>
+
 </template>
 
 <style scoped>
-img {
+.banner-wrapper {
+  position: relative;
+}
+.main_banner{
   width: 100%;
-  height: 100vh;
+  height: 300px;
+  object-fit: cover;
+  display: block;
+}
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 300px;
+  background-color: rgba(0, 0, 0, 0.4); /* phủ đen */
+}
+.main_text{
+  position: absolute;
+  top: 50%;
+  left: 55%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 28px;
+  font-weight: bold;
+  z-index: 2;
+  text-align: center;
 }
 .concak {
   position: absolute;
-  top: 40%;
-  left: 50%;
+  top: 60%;
+  left: 57%;
   transform: translate(-50%, -50%);
-  width: 100%;
+  width: 85%;
 }
 .button-click {
   display: flex;
@@ -474,5 +504,11 @@ button {
 .thanh-search{
   width: 30%;
   margin-bottom: 20px;
+}
+.main_banner{
+  width: 100%;
+}
+.banner{
+  width: 100%;
 }
 </style>
