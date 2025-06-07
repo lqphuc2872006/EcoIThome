@@ -1,148 +1,4 @@
 ```vue
-<template>
-  <HeaderHome />
-  <div class="calendar-container">
-    <div class="thanh-chuc-nang">
-      <div class="search-bar">
-        <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Tìm kiếm theo tên intern..."
-            class="search-input"
-        />
-        <button v-if="searchQuery" @click="clearSearch" class="clear-button">
-          <i class="fa-solid fa-times"></i>
-        </button>
-      </div>
-      <div class="button-add">
-        <button @click="openModelupdate">
-          <i class="fa-solid fa-pen-to-square"></i>
-        </button>
-      </div>
-    </div>
-
-
-    <div class="bo_loc">
-      <input type="date" name="" id="">
-      <input type="date" name="" id="">
-    </div>
-
-    <h2>Lịch Thực Tập Sinh - Tháng {{ currentDate.toLocaleString('vi-VN', { month: 'long', year: 'numeric' }) }}</h2>
-
-
-
-    <div class="month-navigation">
-      <button @click="changeMonth(-1)">Tháng trước</button>
-      <button @click="changeMonth(1)">Tháng sau</button>
-    </div>
-
-    <div class="calendar-view">
-      <table class="calendar-table">
-        <thead>
-        <tr>
-          <th>Thứ Hai</th>
-          <th>Thứ Ba</th>
-          <th>Thứ Tư</th>
-          <th>Thứ Năm</th>
-          <th>Thứ Sáu</th>
-          <th>Thứ Bảy</th>
-          <th>Chủ Nhật</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr v-for="(week, weekIndex) in weeksInMonth" :key="weekIndex">
-          <td
-              v-for="day in week"
-              :key="day.date"
-              class="day-cell"
-              :class="{
-                'has-interns': getInternCountByDate(day.date) > 0,
-                'not-in-month': !day.isInCurrentMonth,
-                'filtered': searchQuery && !isDayRelevant(day.date)
-              }"
-              @click="day.isInCurrentMonth && selectDay(day.date)"
-          >
-            <div v-if="day.date" class="day-content">
-              <span class="day-number">{{ new Date(day.date).getDate() }}</span>
-              <span class="intern-count">({{ getInternCountByDate(day.date) }})</span>
-              <div v-if="selectedDay === day.date" class="intern-list">
-                <ul v-if="filteredInterns(day.date).length > 0">
-                  <li v-for="intern in filteredInterns(day.date)" :key="intern.id" class="intern-name">
-                    {{ intern.name }}
-                  </li>
-                </ul>
-                <p v-else>Không có thực tập sinh làm việc trong ngày này.</p>
-              </div>
-            </div>
-          </td>
-        </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Modal cập nhật InternWorkSchedule -->
-    <div v-if="showModelupdate" class="modal-new">
-      <div class="modal-content">
-        <div class="form-add">
-          <h3 style="text-align: center">Cập Nhật Intern</h3>
-          <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
-          <div v-if="successMessage" class="success-message">{{ successMessage }}</div>
-          <form @submit.prevent="submitUpdate">
-            <div class="form-group">
-              <label for="intern">Tên Intern:</label>
-              <select
-                  v-model="selectedInternId"
-                  id="intern"
-                  class="form-control"
-                  required
-                  @change="fetchInternSchedule"
-              >
-                <option value="" disabled>Chọn Intern</option>
-                <option v-for="intern in interns" :key="intern.id" :value="intern.id">
-                  {{ intern.name }}
-                </option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="startDate">Ngày bắt đầu:</label>
-              <input
-                  v-model="internData.startDate"
-                  id="startDate"
-                  type="date"
-                  class="form-control"
-                  required
-              />
-            </div>
-            <div class="form-group">
-              <label for="endDate">Ngày kết thúc:</label>
-              <input
-                  v-model="internData.endDate"
-                  id="endDate"
-                  type="date"
-                  class="form-control"
-              />
-            </div>
-            <div class="form-group">
-              <label for="hours">Số giờ/tuần:</label>
-              <input
-                  v-model="internData.availableHoursPerWeek"
-                  id="hours"
-                  type="number"
-                  class="form-control"
-                  required
-              />
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px">
-              <button type="button" class="bg-red-500" @click="closeModelupdate">Đóng</button>
-              <button type="submit" class="bg-green-600">Lưu</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import HeaderHome from '@/view/FooterHeader/HeaderHome.vue';
@@ -322,6 +178,38 @@ const filteredInterns = (date) => {
   return selectedDayInterns.value.filter(intern => intern.name.toLowerCase().includes(searchQuery.value.toLowerCase()));
 };
 
+const getTotalInternsInMonth = () => {
+  const uniqueInternIds = new Set();
+  const year = currentDate.value.getFullYear();
+  const month = currentDate.value.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+
+  schedules.value.forEach(schedule => {
+    const startDate = new Date(schedule.startDate);
+    const endDate = schedule.endDate ? new Date(schedule.endDate) : new Date();
+
+    if ((startDate <= lastDay && endDate >= firstDay) && schedule.intern) {
+      uniqueInternIds.add(schedule.intern.id);
+    }
+  });
+
+  return uniqueInternIds.size;
+};
+
+const isWeekend = (date) => {
+  if (!date) return false;
+  const dayOfWeek = new Date(date).getDay();
+  return dayOfWeek === 0 || dayOfWeek === 6;
+};
+
+const isToday = (date) => {
+  if (!date) return false;
+  const today = new Date();
+  const checkDate = new Date(date);
+  return checkDate.toDateString() === today.toDateString();
+};
+
 const weeksInMonth = computed(() => {
   const year = currentDate.value.getFullYear();
   const month = currentDate.value.getMonth();
@@ -397,317 +285,1016 @@ onMounted(() => {
 });
 </script>
 
+<template>
+  <HeaderHome />
+  <div class="calendar-container">
+    <!-- Header Section -->
+    <div class="header-section">
+      <div class="header-title">
+        <h1>📅 Lịch Thực Tập Sinh</h1>
+      </div>
+    </div>
+
+    <!-- Control Panel -->
+    <div class="control-panel">
+      <div class="search-section">
+        <div class="search-wrapper">
+          <i class="fas fa-search search-icon"></i>
+          <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Tìm kiếm theo tên thực tập sinh..."
+              class="search-input"
+          />
+          <button v-if="searchQuery" @click="clearSearch" class="clear-button">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button @click="openModelupdate" class="btn-primary">
+          <i class="fas fa-edit"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Date Filter -->
+    <div class="date-filter">
+      <div class="filter-group">
+        <label>📅 Từ ngày:</label>
+        <input type="date" class="date-input" />
+      </div>
+      <div class="filter-group">
+        <label>📅 Đến ngày:</label>
+        <input type="date" class="date-input" />
+      </div>
+      <button class="btn-filter">
+        <i class="fas fa-filter"></i>
+        Lọc
+      </button>
+    </div>
+
+    <!-- Month Navigation -->
+    <div class="month-header">
+      <button @click="changeMonth(-1)" class="nav-button">
+        <i class="fas fa-chevron-left"></i>
+        <span>Tháng trước</span>
+      </button>
+
+      <div class="current-month">
+        <h2>{{ currentDate.toLocaleString('vi-VN', { month: 'long', year: 'numeric' }) }}</h2>
+        <div class="month-stats">
+          <span class="stat-item">
+            <i class="fas fa-users"></i>
+            {{ getTotalInternsInMonth() }} thực tập sinh
+          </span>
+        </div>
+      </div>
+
+      <button @click="changeMonth(1)" class="nav-button">
+        <span>Tháng sau</span>
+        <i class="fas fa-chevron-right"></i>
+      </button>
+    </div>
+
+    <!-- Calendar Grid -->
+    <div class="calendar-wrapper">
+      <div class="calendar-grid">
+        <!-- Week Headers -->
+        <div class="week-headers">
+          <div class="day-header">Thứ Hai</div>
+          <div class="day-header">Thứ Ba</div>
+          <div class="day-header">Thứ Tư</div>
+          <div class="day-header">Thứ Năm</div>
+          <div class="day-header">Thứ Sáu</div>
+          <div class="day-header weekend">Thứ Bảy</div>
+          <div class="day-header weekend">Chủ Nhật</div>
+        </div>
+
+        <!-- Calendar Body -->
+        <div class="calendar-body">
+          <div
+              v-for="(week, weekIndex) in weeksInMonth"
+              :key="weekIndex"
+              class="week-row"
+          >
+            <div
+                v-for="day in week"
+                :key="day.date"
+                class="day-cell"
+                :class="{
+                'has-interns': getInternCountByDate(day.date) > 0,
+                'not-in-month': !day.isInCurrentMonth,
+                'filtered': searchQuery && !isDayRelevant(day.date),
+                'selected': selectedDay === day.date,
+                'weekend': isWeekend(day.date),
+                'today': isToday(day.date)
+              }"
+                @click="day.isInCurrentMonth && selectDay(day.date)"
+            >
+              <div v-if="day.date" class="day-content">
+                <div class="day-header-info">
+                  <span class="day-number">{{ new Date(day.date).getDate() }}</span>
+                  <div class="intern-badge" v-if="getInternCountByDate(day.date) > 0">
+                    <i class="fas fa-user-friends"></i>
+                    {{ getInternCountByDate(day.date) }}
+                  </div>
+                </div>
+
+                <div v-if="selectedDay === day.date" class="intern-details">
+                  <div class="intern-list-header">
+                    <i class="fas fa-list"></i>
+                    <span>Danh sách làm việc</span>
+                  </div>
+                  <div class="intern-list-content">
+                    <div v-if="filteredInterns(day.date).length > 0" class="intern-items">
+                      <div
+                          v-for="intern in filteredInterns(day.date)"
+                          :key="intern.id"
+                          class="intern-item"
+                      >
+                        <div class="intern-avatar">
+                          {{ intern.name.charAt(0).toUpperCase() }}
+                        </div>
+                        <span class="intern-name">{{ intern.name }}</span>
+                      </div>
+                    </div>
+                    <div v-else class="no-interns">
+                      <i class="fas fa-calendar-times"></i>
+                      <p>Không có thực tập sinh</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Update -->
+    <div v-if="showModelupdate" class="modal-overlay">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h3>
+            <i class="fas fa-edit"></i>
+            Cập Nhật Lịch Thực Tập Sinh
+          </h3>
+          <button @click="closeModelupdate" class="modal-close">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div v-if="errorMessage" class="alert alert-error">
+            <i class="fas fa-exclamation-circle"></i>
+            {{ errorMessage }}
+          </div>
+          <div v-if="successMessage" class="alert alert-success">
+            <i class="fas fa-check-circle"></i>
+            {{ successMessage }}
+          </div>
+
+          <form @submit.prevent="submitUpdate" class="form-update">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="intern">
+                  <i class="fas fa-user"></i>
+                  Chọn thực tập sinh
+                </label>
+                <select
+                    v-model="selectedInternId"
+                    id="intern"
+                    class="form-select"
+                    required
+                    @change="fetchInternSchedule"
+                >
+                  <option value="" disabled>Chọn thực tập sinh</option>
+                  <option v-for="intern in interns" :key="intern.id" :value="intern.id">
+                    {{ intern.name }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="startDate">
+                  <i class="fas fa-calendar-alt"></i>
+                  Ngày bắt đầu
+                </label>
+                <input
+                    v-model="internData.startDate"
+                    id="startDate"
+                    type="date"
+                    class="form-input"
+                    required
+                />
+              </div>
+              <div class="form-group">
+                <label for="endDate">
+                  <i class="fas fa-calendar-check"></i>
+                  Ngày kết thúc
+                </label>
+                <input
+                    v-model="internData.endDate"
+                    id="endDate"
+                    type="date"
+                    class="form-input"
+                />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="hours">
+                  <i class="fas fa-clock"></i>
+                  Số giờ làm việc/tuần
+                </label>
+                <input
+                    v-model="internData.availableHoursPerWeek"
+                    id="hours"
+                    type="number"
+                    class="form-input"
+                    min="1"
+                    max="40"
+                    required
+                />
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" @click="closeModelupdate" class="btn-secondary">
+                <i class="fas fa-times"></i>
+                Hủy bỏ
+              </button>
+              <button type="submit" class="btn-success">
+                <i class="fas fa-save"></i>
+                Lưu thay đổi
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+
 <style scoped>
+* {
+  box-sizing: border-box;
+}
+
 .calendar-container {
-  max-width: 1200px;
-  margin: 50px auto;
-  padding: 30px;
-  border-radius: 12px;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-  background: linear-gradient(135deg, #ffffff, #f8fafc);
-  font-family: 'Inter', sans-serif;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  min-height: 100vh;
 }
 
-h2 {
-  color: #2d3748;
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 24px;
+/* Header Section */
+.header-section {
   text-align: center;
+  margin-bottom: 30px;
+  padding: 30px 0;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  border-radius: 20px;
+  color: white;
+  box-shadow: 0 10px 30px rgba(5, 150, 105, 0.3);
 }
 
-/* Thanh tìm kiếm */
-.search-bar {
-  width: 100%;
-
+.header-title h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-.thanh-chuc-nang{
-  gap: 10px;
+
+.header-title p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  margin: 0;
+}
+
+/* Control Panel */
+.control-panel {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.search-section {
+  flex: 1;
+  max-width: 500px;
+}
+
+.search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 15px;
+  color: #6b7280;
+  z-index: 1;
 }
 
 .search-input {
   width: 100%;
-  padding: 10px 40px 10px 16px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  padding: 15px 20px 15px 45px;
+  border: 2px solid #e5e7eb;
+  border-radius: 15px;
   font-size: 1rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  background: white;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #3182ce;
-  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
 }
 
 .clear-button {
   position: absolute;
-  right: 10px;
+  right: 15px;
   background: none;
   border: none;
-  color: #718096;
-  font-size: 1.2rem;
+  color: #6b7280;
   cursor: pointer;
-  padding: 4px;
+  padding: 5px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
 }
 
 .clear-button:hover {
-  color: #2d3748;
+  background: #f3f4f6;
+  color: #374151;
 }
 
-.month-navigation {
+.action-buttons {
   display: flex;
-  justify-content: center;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 10px;
 }
 
-.month-navigation button {
+.btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 12px 24px;
-  background-color: #3182ce;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
+  border-radius: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
 }
 
-.month-navigation button:hover {
-  background-color: #2b6cb0;
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
 }
 
-.calendar-view {
-  margin-top: 20px;
+/* Date Filter */
+.date-filter {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  flex-wrap: wrap;
 }
 
-.calendar-table {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  overflow: hidden;
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-.calendar-table th {
-  background-color: #f7fafc;
-  color: #2d3748;
+.filter-group label {
   font-weight: 600;
-  padding: 12px;
-  border-bottom: 1px solid #e2e8f0;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.date-input {
+  padding: 10px 15px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.date-input:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.btn-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-filter:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3);
+}
+
+/* Month Header */
+.month-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding: 20px;
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.nav-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nav-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.current-month {
   text-align: center;
 }
 
-.day-cell {
-  border: 1px solid #e2e8f0;
-  height: 150px;
-  vertical-align: top;
-  padding: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
+.current-month h2 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #059669;
+  margin: 0 0 8px 0;
 }
 
-.day-cell.has-interns {
-  background-color: #e6fffa;
-  border-color: #4fd1c5;
+.month-stats {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+/* Calendar */
+.calendar-wrapper {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.calendar-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.week-headers {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+.day-header {
+  padding: 15px;
+  text-align: center;
+  font-weight: 700;
+  color: white;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.day-header.weekend {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.calendar-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.week-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.week-row:last-child {
+  border-bottom: none;
+}
+
+.day-cell {
+  min-height: 120px;
+  border-right: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  background: white;
+}
+
+.day-cell:last-child {
+  border-right: none;
 }
 
 .day-cell:hover:not(.not-in-month):not(.filtered) {
-  background-color: #edf2f7;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  transform: scale(1.02);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+}
+
+.day-cell.has-interns {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border-left: 4px solid #10b981;
+}
+
+.day-cell.has-interns:hover {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
 }
 
 .day-cell.not-in-month {
-  background-color: #f7fafc;
-  cursor: default;
-}
-
-.day-cell.filtered {
-  background-color: #f7fafc;
+  background: #f9fafb;
   opacity: 0.5;
   cursor: default;
 }
 
+.day-cell.filtered {
+  background: #f9fafb;
+  opacity: 0.3;
+  cursor: default;
+}
+
+.day-cell.selected {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3);
+}
+
+.day-cell.weekend {
+  background: linear-gradient(135deg, #fefefe 0%, #f8fafc 100%);
+}
+
+.day-cell.today {
+  border: 2px solid #f59e0b;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+}
+
+.day-cell.today.selected {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-color: #f59e0b;
+}
+
 .day-content {
+  padding: 12px;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  height: 100%;
 }
 
-.day-number {
-  color: #2d3748;
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.intern-count {
-  color: #4fd1c5;
-  font-size: 0.9rem;
-  font-weight: 700;
+.day-header-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 8px;
 }
 
-.intern-list {
-  width: 100%;
-  max-height: 80px;
-  overflow-y: auto;
-  font-size: 0.85rem;
-  color: #2d3748;
+.day-number {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: inherit;
 }
 
-.intern-list ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.intern-list li {
-  padding: 4px 0;
-  text-align: center;
-  border-top: 1px solid #e2e8f0;
-}
-
-.intern-list p {
-  font-size: 0.85rem;
-  color: #718096;
-  text-align: center;
-  margin: 0;
-}
-
-.button-add {
+.intern-badge {
   display: flex;
-  justify-content: flex-end;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.button-add button {
-  padding: 12px 24px;
-  background-color: green;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
-.button-add button:hover {
-  background-color: #42b983;
+.selected .intern-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
 }
 
-.modal-new {
+.intern-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.intern-list-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: inherit;
+  opacity: 0.9;
+}
+
+.intern-list-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.intern-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.intern-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.selected .intern-item {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.intern-item:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateX(2px);
+}
+
+.selected .intern-item:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.intern-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.selected .intern-avatar {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.intern-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: inherit;
+  flex: 1;
+}
+
+.no-interns {
+  text-align: center;
+  color: inherit;
+  opacity: 0.7;
+  padding: 10px;
+}
+
+.no-interns i {
+  font-size: 1.2rem;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.no-interns p {
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+/* Modal Styles */
+.modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  backdrop-filter: blur(5px);
 }
 
-.modal-new .modal-content {
-  background-color: #fff;
-  border-radius: 12px;
-  padding: 24px;
-  max-width: 500px;
+.modal-container {
+  background: white;
+  border-radius: 20px;
+  max-width: 600px;
   width: 90%;
-  max-height: 80vh;
-  overflow-y: auto;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-  animation: fadeIn 0.3s ease;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s ease;
 }
 
-.form-add {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.form-group {
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-}
-
-.form-control {
-  padding: 8px;
-  border: 1px solid #e2e8f0;
-  border-radius: 4px;
-  font-size: 1rem;
-}
-
-.bg-red-500 {
-  background-color: #e53e3e;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.bg-red-500:hover {
-  background-color: #c53030;
-}
-
-.bg-green-600 {
-  background-color: #38a169;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.bg-green-600:hover {
-  background-color: #2f855a;
-}
-
-.error-message {
-  color: #e53e3e;
-  font-size: 1rem;
-  text-align: center;
-  margin-bottom: 16px;
-}
-
-.success-message {
-  color: #38a169;
-  font-size: 1rem;
-  text-align: center;
-  margin-bottom: 16px;
-}
-
-@keyframes fadeIn {
+@keyframes modalSlideIn {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: translateY(-30px) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: scale(1);
+    transform: translateY(0) scale(1);
   }
 }
-.bo_loc {
+
+.modal-header {
   display: flex;
-  gap: 10px;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  margin: 20px 0;
+  padding: 25px 30px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
 }
-.bo_loc input[type="date"] {
-  padding: 8px 12px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 16px;
+
+.modal-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
+}
+
+.modal-body {
+  padding: 30px;
+  overflow-y: auto;
+  max-height: calc(90vh - 80px);
+}
+
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+.alert-error {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.alert-success {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  color: #059669;
+  border: 1px solid #bbf7d0;
+}
+
+.form-update {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.form-row:has(.form-group:nth-child(2)) {
+  grid-template-columns: 1fr 1fr;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.form-input,
+.form-select {
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.form-input:focus,
+.form-select:focus {
   outline: none;
-  transition: border-color 0.3s, box-shadow 0.3s;
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-secondary,
+.btn-success {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+  transform: translateY(-1px);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.btn-success:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .calendar-container {
+    padding: 15px;
+  }
+
+  .header-title h1 {
+    font-size: 2rem;
+  }
+
+  .control-panel {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-section {
+    max-width: none;
+  }
+
+  .date-filter {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .month-header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+
+  .nav-button {
+    order: 2;
+  }
+
+  .current-month {
+    order: 1;
+  }
+
+  .day-cell {
+    min-height: 100px;
+  }
+
+  .form-row:has(.form-group:nth-child(2)) {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-container {
+    width: 95%;
+    margin: 10px;
+  }
+
+  .modal-body {
+    padding: 20px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-title h1 {
+    font-size: 1.5rem;
+  }
+
+  .day-cell {
+    min-height: 80px;
+  }
+
+  .day-header {
+    padding: 10px 5px;
+    font-size: 0.8rem;
+  }
+
+  .intern-item {
+    padding: 4px;
+  }
+
+  .intern-name {
+    font-size: 0.75rem;
+  }
 }
 
 </style>
-```

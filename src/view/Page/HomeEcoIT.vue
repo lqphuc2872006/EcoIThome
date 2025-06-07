@@ -55,7 +55,7 @@ import FooterHome from "@/view/FooterHeader/FooterHome.vue";
   color: #ccc;
 }
 .main_banner{
-  margin-left: 250px;
+  width: 100%;
 }
 
 </style>
